@@ -34,14 +34,15 @@ Options:
   --openai-api-key <key>       OpenAI API key (overrides OPENAI_API_KEY and saved config)
   --gemini-api-key <key>       Google AI Studio API key (overrides GEMINI_API_KEY and saved config)
   --openrouter-api-key <key>   OpenRouter API key (overrides OPENROUTER_API_KEY and saved config)
+  --zai-api-key <key>          Z.AI API key (overrides ZAI_API_KEY and saved config)
   --extra-instructions <text>  Project-specific guidance appended to the system prompt
   --save                       Persist passed flags to the config file
   -h, --help                   Show this help
 
-Providers: anthropic, openai, gemini, openrouter. Specs are provider:id.
+Providers: anthropic, openai, gemini, openrouter, zai. Specs are provider:id.
 A provider's key is required only when a slot uses that provider.
 
-Config keys: anthropic-api-key, openai-api-key, gemini-api-key, openrouter-api-key,
+Config keys: anthropic-api-key, openai-api-key, gemini-api-key, openrouter-api-key, zai-api-key,
              model, model-1, model-2, extra-instructions, base
 Config file: ~/.config/kolpo/config.json (override with KOLPO_CONFIG)
 `
@@ -59,6 +60,7 @@ Config file: ~/.config/kolpo/config.json (override with KOLPO_CONFIG)
  * @property {string} [openaiApiKey]
  * @property {string} [geminiApiKey]
  * @property {string} [openrouterApiKey]
+ * @property {string} [zaiApiKey]
  * @property {string} [extraInstructions]
  * @property {boolean} extraSpecified
  * @property {boolean} save
@@ -233,6 +235,12 @@ export function parseArgs(argv) {
       i = next
       continue
     }
+    if (arg === "--zai-api-key" || arg.startsWith("--zai-api-key=")) {
+      const [value, next] = takeValue(argv, i, "--zai-api-key")
+      opts.zaiApiKey = value
+      i = next
+      continue
+    }
     if (arg === "--extra-instructions" || arg.startsWith("--extra-instructions=")) {
       const [value, next] = takeValue(argv, i, "--extra-instructions")
       opts.extraInstructions = value
@@ -280,6 +288,7 @@ export function resolveReviewOptions(opts, saved, env = process.env) {
         openaiApiKey: opts.openaiApiKey,
         geminiApiKey: opts.geminiApiKey,
         openrouterApiKey: opts.openrouterApiKey,
+        zaiApiKey: opts.zaiApiKey,
       },
       env,
       saved
@@ -326,6 +335,7 @@ function persistPassedFlags(opts, file) {
   if (opts.openaiApiKey !== undefined) partial.openaiApiKey = opts.openaiApiKey
   if (opts.geminiApiKey !== undefined) partial.geminiApiKey = opts.geminiApiKey
   if (opts.openrouterApiKey !== undefined) partial.openrouterApiKey = opts.openrouterApiKey
+  if (opts.zaiApiKey !== undefined) partial.zaiApiKey = opts.zaiApiKey
   if (opts.model !== undefined) partial.model = opts.model
   if (opts.model1Specified) partial.model1 = opts.model1 ?? ""
   if (opts.model2Specified) partial.model2 = opts.model2 ?? ""

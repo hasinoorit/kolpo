@@ -35,6 +35,8 @@ test("parseArgs accepts positional base and flags", () => {
     "sk-oa",
     "--gemini-api-key",
     "sk-gem",
+    "--zai-api-key",
+    "sk-zai",
     "--extra-instructions",
     "watch rounding",
     "--save",
@@ -50,6 +52,7 @@ test("parseArgs accepts positional base and flags", () => {
   assert.equal(opts.anthropicApiKey, "sk-ant")
   assert.equal(opts.openaiApiKey, "sk-oa")
   assert.equal(opts.geminiApiKey, "sk-gem")
+  assert.equal(opts.zaiApiKey, "sk-zai")
   assert.equal(opts.extraInstructions, "watch rounding")
   assert.equal(opts.extraSpecified, true)
   assert.equal(opts.save, true)
@@ -92,6 +95,8 @@ test("HELP documents positional base and --help", () => {
   assert.match(HELP, /kolpo main/)
   assert.match(HELP, /--help/)
   assert.match(HELP, /kolpo config show/)
+  assert.match(HELP, /zai-api-key/)
+  assert.match(HELP, /Providers:.*zai/)
 })
 
 test("runCli --help prints usage and exits 0", async () => {
@@ -138,6 +143,13 @@ test("parseArgs config subcommands", () => {
     action: "set",
     key: "model2",
     value: "openai:gpt-5.4",
+    help: false,
+  })
+  assert.deepEqual(parseArgs(["config", "set", "zai-api-key", "sk-zai"]), {
+    command: "config",
+    action: "set",
+    key: "zaiApiKey",
+    value: "sk-zai",
     help: false,
   })
   assert.throws(() => parseArgs(["config", "set", "api-key", "x"]), /Unknown config key/)

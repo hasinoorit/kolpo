@@ -56,6 +56,7 @@ test("maskSecret and formatConfig hide provider keys", () => {
   assert.ok(text.includes("openai-api-key:"))
   assert.ok(text.includes("gemini-api-key:"))
   assert.ok(text.includes("openrouter-api-key:"))
+  assert.ok(text.includes("zai-api-key:"))
 })
 
 test("formatConfig labels an unset primary model as not set", () => {

@@ -8,6 +8,7 @@ import {
   MAX_OUTPUT_TOKENS,
   OPENAI_URL,
   OPENROUTER_URL,
+  ZAI_URL,
   SKIP_FILES,
   SYSTEM_PROMPT,
   TOTAL_CAP,
@@ -400,6 +401,7 @@ function providerLabel(provider) {
   if (provider === "anthropic") return "Anthropic"
   if (provider === "openai") return "OpenAI"
   if (provider === "gemini") return "Gemini"
+  if (provider === "zai") return "Z.AI"
   return "OpenRouter"
 }
 
@@ -444,7 +446,7 @@ function fetchProvider(provider, id, apiKey, systemPrompt, chatMessages, anthrop
       }),
     })
   }
-  const url = provider === "openai" ? OPENAI_URL : OPENROUTER_URL
+  const url = provider === "openai" ? OPENAI_URL : provider === "zai" ? ZAI_URL : OPENROUTER_URL
   const limit = provider === "openai" ? { max_completion_tokens: MAX_OUTPUT_TOKENS } : { max_tokens: MAX_OUTPUT_TOKENS }
   return fetch(url, {
     method: "POST",

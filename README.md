@@ -10,7 +10,7 @@ in only the secondary findings that are new and real. Leave a secondary empty
 to drop that slot.
 
 Each slot is `provider:id`. Providers are `anthropic`, `openai`, `gemini`
-(Google AI Studio), and `openrouter`. The primary model is required. Only the
+(Google AI Studio), `openrouter`, and `zai` (Z.AI). The primary model is required. Only the
 API keys for providers you actually use must be set. A failed secondary is
 dropped; a failed primary fails the run after one retry on that same model.
 
@@ -25,6 +25,7 @@ kolpo --help
 kolpo config set anthropic-api-key sk-ant-...
 kolpo config set openai-api-key sk-...
 kolpo config set gemini-api-key AIza...
+kolpo config set zai-api-key ...
 kolpo config set model anthropic:claude-sonnet-4-6
 kolpo config set model-1 openai:gpt-5.4
 kolpo config set model-2 gemini:gemini-2.5-pro
@@ -37,6 +38,7 @@ Or without a global install: `npx kolpo`. Persist flags from a review invocation
 ```bash
 kolpo --anthropic-api-key sk-ant-... --model anthropic:claude-sonnet-4-6 --save
 kolpo --gemini-api-key AIza... --model gemini:gemini-2.5-pro --save
+kolpo --zai-api-key ... --model zai:glm-5.3 --save
 ```
 
 Config lives at `~/.config/kolpo/config.json` (override with `KOLPO_CONFIG`).
@@ -65,6 +67,7 @@ Flags (override saved config for this run):
 - `--openai-api-key <key>` — OpenAI key (overrides `OPENAI_API_KEY` and saved config)
 - `--gemini-api-key <key>` — Google AI Studio key (overrides `GEMINI_API_KEY` and saved config)
 - `--openrouter-api-key <key>` — OpenRouter key (overrides `OPENROUTER_API_KEY` and saved config)
+- `--zai-api-key <key>` — Z.AI key (overrides `ZAI_API_KEY` and saved config)
 - `--extra-instructions <text>` — project-specific guidance appended to the system prompt
 - `--save` — write the flags you passed to the config file
 
@@ -157,6 +160,15 @@ Gemini (Google AI Studio) as the primary reviewer:
         with:
           model: gemini:gemini-2.5-pro
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+```
+
+Z.AI (GLM) as the primary reviewer:
+
+```yaml
+      - uses: hasinoorit/kolpo@master
+        with:
+          model: zai:glm-5.3
+          zai-api-key: ${{ secrets.ZAI_API_KEY }}
 ```
 
 Then add the secrets for the providers you use (repo → Settings → Secrets → Actions).

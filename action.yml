@@ -2,7 +2,7 @@ name: Kolpo
 description: Kolpo AI code review on pull requests.
 inputs:
   model:
-    description: Primary reviewer as provider:id (anthropic, openai, gemini, or openrouter)
+    description: Primary reviewer as provider:id (anthropic, openai, gemini, openrouter, or zai)
     required: true
   model-1:
     description: First secondary reviewer as provider:id, or empty to disable
@@ -21,6 +21,9 @@ inputs:
     default: ""
   openrouter-api-key:
     description: OpenRouter API key (required if any slot uses openrouter:)
+    default: ""
+  zai-api-key:
+    description: Z.AI API key (required if any slot uses zai:)
     default: ""
   extra-instructions:
     description: Optional project-specific review guidance appended to the general system prompt
@@ -44,5 +47,6 @@ runs:
         OPENAI_API_KEY: ${{ inputs.openai-api-key }}
         GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
         OPENROUTER_API_KEY: ${{ inputs.openrouter-api-key }}
+        ZAI_API_KEY: ${{ inputs.zai-api-key }}
         EXTRA_INSTRUCTIONS: ${{ inputs.extra-instructions }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
