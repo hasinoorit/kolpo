@@ -412,11 +412,6 @@ export async function runCli(argv = process.argv.slice(2)) {
     return 1
   }
 
-  if (opts.save) {
-    persistPassedFlags(opts, file)
-    saved = loadConfig(file)
-  }
-
   let resolved
   try {
     resolved = resolveReviewOptions(opts, saved, process.env)
@@ -424,6 +419,8 @@ export async function runCli(argv = process.argv.slice(2)) {
     console.error(err instanceof Error ? err.message : err)
     return 1
   }
+
+  if (opts.save) persistPassedFlags(opts, file)
 
   const cwd = process.cwd()
   const base = resolved.base || defaultBase(cwd)

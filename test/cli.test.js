@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, readFileSync } from "node:fs"
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { parseArgs, resolveReviewOptions, runCli, reviewMarkdownName, writeReviewMarkdown, HELP } from "../src/cli.js"
@@ -240,6 +240,31 @@ test("resolveReviewOptions prefers flag key over env over saved", () => {
     ).keys.openai,
     "sk-env"
   )
+})
+
+test("runCli --save does not persist when primary model resolution fails", async () => {
+  const file = join(mkdtempSync(join(tmpdir(), "kolpo-")), "config.json")
+  const original = {
+    model: "anthropic:claude-sonnet-4-6",
+    model1: "zai:glm-5.3",
+    anthropicApiKey: "sk-ant",
+    zaiApiKey: "sk-zai",
+  }
+  writeFileSync(file, JSON.stringify(original, null, 2) + "\n")
+  const prev = process.env.KOLPO_CONFIG
+  process.env.KOLPO_CONFIG = file
+  const errors = []
+  const origErr = console.error
+  console.error = (...args) => errors.push(args.join(" "))
+  try {
+    assert.equal(await runCli(["--model", "nope", "--model-1=", "--model-2=", "--save"]), 1)
+    assert.deepEqual(loadConfig(file), original)
+    assert.match(errors.join("\n"), /must be provider:id|unknown provider|model spec/)
+  } finally {
+    console.error = origErr
+    if (prev === undefined) delete process.env.KOLPO_CONFIG
+    else process.env.KOLPO_CONFIG = prev
+  }
 })
 
 test("runCli config set writes provider key and model to KOLPO_CONFIG", async () => {
