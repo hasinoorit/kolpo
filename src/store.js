@@ -7,6 +7,7 @@ export const CONFIG_KEY_MAP = {
   "openai-api-key": "openaiApiKey",
   "gemini-api-key": "geminiApiKey",
   "openrouter-api-key": "openrouterApiKey",
+  "zai-api-key": "zaiApiKey",
   model: "model",
   "model-1": "model1",
   "model-2": "model2",
@@ -19,6 +20,7 @@ const CONFIG_FIELDS = [
   "openaiApiKey",
   "geminiApiKey",
   "openrouterApiKey",
+  "zaiApiKey",
   "model",
   "model1",
   "model2",
@@ -27,11 +29,11 @@ const CONFIG_FIELDS = [
 ]
 
 /**
- * @typedef {"anthropic-api-key" | "openai-api-key" | "gemini-api-key" | "openrouter-api-key" | "model" | "model-1" | "model-2" | "extra-instructions" | "base"} ConfigFlag
+ * @typedef {"anthropic-api-key" | "openai-api-key" | "gemini-api-key" | "openrouter-api-key" | "zai-api-key" | "model" | "model-1" | "model-2" | "extra-instructions" | "base"} ConfigFlag
  */
 
 /**
- * @typedef {"anthropicApiKey" | "openaiApiKey" | "geminiApiKey" | "openrouterApiKey" | "model" | "model1" | "model2" | "extraInstructions" | "base"} ConfigField
+ * @typedef {"anthropicApiKey" | "openaiApiKey" | "geminiApiKey" | "openrouterApiKey" | "zaiApiKey" | "model" | "model1" | "model2" | "extraInstructions" | "base"} ConfigField
  */
 
 /**
@@ -40,6 +42,7 @@ const CONFIG_FIELDS = [
  * @property {string} [openaiApiKey]
  * @property {string} [geminiApiKey]
  * @property {string} [openrouterApiKey]
+ * @property {string} [zaiApiKey]
  * @property {string} [model]
  * @property {string} [model1]
  * @property {string} [model2]
@@ -131,7 +134,7 @@ export function unsetConfig(field, file = configPath()) {
 export function parseConfigKey(raw) {
   if (Object.hasOwn(CONFIG_KEY_MAP, raw)) return /** @type {ConfigFlag} */ (raw)
   throw new Error(
-    `Unknown config key "${raw}". Use: anthropic-api-key, openai-api-key, gemini-api-key, openrouter-api-key, model, model-1, model-2, extra-instructions, base`
+    `Unknown config key "${raw}". Use: anthropic-api-key, openai-api-key, gemini-api-key, openrouter-api-key, zai-api-key, model, model-1, model-2, extra-instructions, base`
   )
 }
 
@@ -173,6 +176,7 @@ export function formatConfig(saved, file) {
   lines.push(`  openai-api-key: ${keyLabel(saved.openaiApiKey)}`)
   lines.push(`  gemini-api-key: ${keyLabel(saved.geminiApiKey)}`)
   lines.push(`  openrouter-api-key: ${keyLabel(saved.openrouterApiKey)}`)
+  lines.push(`  zai-api-key: ${keyLabel(saved.zaiApiKey)}`)
   lines.push(`  model: ${saved.model || "(not set)"}`)
   lines.push(`  model-1: ${slotLabel(saved.model1)}`)
   lines.push(`  model-2: ${slotLabel(saved.model2)}`)

@@ -10,8 +10,10 @@ test("parseModel splits provider:id on the first colon", () => {
     provider: "openrouter",
     id: "openai/gpt-oss-120b:free",
   })
+  assert.deepEqual(parseModel("zai:glm-5.3"), { provider: "zai", id: "glm-5.3" })
   assert.deepEqual(parseModel("OpenAI:gpt-5.4"), { provider: "openai", id: "gpt-5.4" })
   assert.deepEqual(parseModel("Gemini:gemini-2.5-pro"), { provider: "gemini", id: "gemini-2.5-pro" })
+  assert.deepEqual(parseModel("ZAI:glm-5.3"), { provider: "zai", id: "glm-5.3" })
 })
 
 test("parseModel rejects empty, dynamic:free, and unknown providers", () => {
@@ -42,6 +44,14 @@ test("resolveProviderKeys requires keys only for used providers", () => {
   assert.throws(
     () => resolveProviderKeys(["openrouter:deepseek/x"], {}, {}, {}),
     /OpenRouter API key missing/
+  )
+  assert.equal(
+    resolveProviderKeys(["zai:glm-5.3"], {}, { ZAI_API_KEY: "sk-zai" }, {}).zai,
+    "sk-zai"
+  )
+  assert.throws(
+    () => resolveProviderKeys(["zai:glm-5.3"], {}, {}, {}),
+    /Z\.AI API key missing/
   )
   assert.doesNotThrow(() => resolveProviderKeys(["anthropic:a", ""], { anthropicApiKey: "k" }, {}, {}))
 })

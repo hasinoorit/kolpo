@@ -3,6 +3,7 @@ export const BOT_NAME = "Kolpo"
 export const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 export const OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+export const ZAI_URL = "https://api.z.ai/api/paas/v4/chat/completions"
 export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 export const DEFAULT_MODEL_1 = ""

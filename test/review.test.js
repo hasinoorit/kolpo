@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { ANTHROPIC_URL, MAX_OUTPUT_TOKENS, OPENAI_URL, OPENROUTER_URL, geminiUrl } from "../src/config.js"
+import { ANTHROPIC_URL, MAX_OUTPUT_TOKENS, OPENAI_URL, OPENROUTER_URL, ZAI_URL, geminiUrl } from "../src/config.js"
 import {
   diffNewLines,
   anchorComment,
@@ -235,6 +235,18 @@ test("runReview posts OpenRouter chat-completions shape", async () => {
   assert.equal(body.max_completion_tokens, undefined)
 })
 
+test("runReview posts Z.AI chat-completions shape", async () => {
+  const calls = await runPrimary("zai:glm-5.3", { zai: "sk-zai" }, async () => Response.json(chatReply()))
+  assert.equal(calls[0].url, ZAI_URL)
+  assert.equal(calls[0].init?.headers?.Authorization, "Bearer sk-zai")
+  const body = JSON.parse(String(calls[0].init?.body))
+  assert.equal(body.model, "glm-5.3")
+  assert.equal(body.messages[0].role, "system")
+  assert.equal(body.messages[1].role, "user")
+  assert.equal(body.max_tokens, MAX_OUTPUT_TOKENS)
+  assert.equal(body.max_completion_tokens, undefined)
+})
+
 test("runReview retries the same model on 503 then throws", async () => {
   const urls = []
   await withFetch(async (url) => {
@@ -418,6 +430,7 @@ test("summarizeErrorBody uses the upstream hint and drops raw JSON", () => {
     "OpenRouter 429 (rate limited): google/gemma-4-31b-it:free is temporarily rate-limited upstream."
   )
   assert.equal(formatHttpError("openai", 503, '{"error":{"message":"Provider returned error"}}'), "OpenAI 503 (server error)")
+  assert.equal(formatHttpError("zai", 401, ""), "Z.AI 401 (unauthorized)")
   assert.doesNotMatch(formatHttpError("openrouter", 429, body), /user_secret/)
 })
 

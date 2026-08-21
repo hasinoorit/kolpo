@@ -10,7 +10,7 @@ in only the secondary findings that are new and real. Leave a secondary empty
 to drop that slot.
 
 Each slot is `provider:id`. Providers are `anthropic`, `openai`, `gemini`
-(Google AI Studio), and `openrouter`. The primary model is required. Only the
+(Google AI Studio), `openrouter`, and `zai` (Z.AI). The primary model is required. Only the
 API keys for providers you actually use must be set. A failed secondary is
 dropped; a failed primary fails the run after one retry on that same model.
 
@@ -25,6 +25,7 @@ kolpo --help
 kolpo config set anthropic-api-key sk-ant-...
 kolpo config set openai-api-key sk-...
 kolpo config set gemini-api-key AIza...
+kolpo config set zai-api-key ...
 kolpo config set model anthropic:claude-sonnet-4-6
 kolpo config set model-1 openai:gpt-5.4
 kolpo config set model-2 gemini:gemini-2.5-pro
@@ -37,6 +38,7 @@ Or without a global install: `npx kolpo`. Persist flags from a review invocation
 ```bash
 kolpo --anthropic-api-key sk-ant-... --model anthropic:claude-sonnet-4-6 --save
 kolpo --gemini-api-key AIza... --model gemini:gemini-2.5-pro --save
+kolpo --zai-api-key ... --model zai:glm-5.3 --save
 ```
 
 Config lives at `~/.config/kolpo/config.json` (override with `KOLPO_CONFIG`).
@@ -65,6 +67,7 @@ Flags (override saved config for this run):
 - `--openai-api-key <key>` — OpenAI key (overrides `OPENAI_API_KEY` and saved config)
 - `--gemini-api-key <key>` — Google AI Studio key (overrides `GEMINI_API_KEY` and saved config)
 - `--openrouter-api-key <key>` — OpenRouter key (overrides `OPENROUTER_API_KEY` and saved config)
+- `--zai-api-key <key>` — Z.AI key (overrides `ZAI_API_KEY` and saved config)
 - `--extra-instructions <text>` — project-specific guidance appended to the system prompt
 - `--save` — write the flags you passed to the config file
 
@@ -105,7 +108,13 @@ still shows `Kolpo — approve`. Reviewer name is `github-actions[bot]`.
 Old Kolpo reviews are collapsed as outdated when a new one posts.
 Add the `no-ai-review` label to a PR to keep the bot out entirely.
 
-Add `.github/workflows/review.yml`:
+Add `.github/workflows/review.yml`. Models can be a static `provider:id` or a
+repository variable so you can switch without editing the workflow. API keys
+always go in secrets. Unset `model-1` / `model-2` vars disable those slots.
+Only keys for providers you actually use must be set.
+
+Variables: repo → Settings → Secrets and variables → Actions → Variables.
+Secrets: the Secrets tab on that same page.
 
 ```yaml
 name: kolpo
@@ -138,28 +147,87 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || '' }}
-      - uses: hasinoorit/kolpo@master
+      - uses: hasinoorit/kolpo@main
+        with:
+          model: ${{ vars.PRIMARY_MODEL }}
+          model-1: ${{ vars.SECONDARY_MODEL }}
+          model-2: ${{ vars.SECONDARY_MODEL_2 }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
+          zai-api-key: ${{ secrets.ZAI_API_KEY }}
+```
+
+Set `PRIMARY_MODEL` to a `provider:id`, for example `anthropic:claude-sonnet-4-6`.
+Optional: `SECONDARY_MODEL`, `SECONDARY_MODEL_2`.
+
+Static models, secrets for keys:
+
+```yaml
+      - uses: hasinoorit/kolpo@main
+        with:
+          model: anthropic:claude-sonnet-4-6
+          model-1: openai:gpt-5.4
+          model-2: gemini:gemini-2.5-pro
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          extra-instructions: |
+            This is a payments service; scrutinize idempotency and rounding.
+```
+
+Mix static and vars if you want a fixed primary and swappable secondaries:
+
+```yaml
+      - uses: hasinoorit/kolpo@main
+        with:
+          model: anthropic:claude-sonnet-4-6
+          model-1: ${{ vars.SECONDARY_MODEL }}
+          model-2: ${{ vars.SECONDARY_MODEL_2 }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
+          zai-api-key: ${{ secrets.ZAI_API_KEY }}
+```
+
+Each provider as the primary reviewer:
+
+```yaml
+      - uses: hasinoorit/kolpo@main
         with:
           model: anthropic:claude-sonnet-4-6
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # model-1: openai:gpt-5.4
-          # openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          # model-2: gemini:gemini-2.5-pro
-          # gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
-          # extra-instructions: |
-          #   This is a payments service; scrutinize idempotency and rounding.
 ```
 
-Gemini (Google AI Studio) as the primary reviewer:
+```yaml
+      - uses: hasinoorit/kolpo@main
+        with:
+          model: openai:gpt-5.4
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+```
 
 ```yaml
-      - uses: hasinoorit/kolpo@master
+      - uses: hasinoorit/kolpo@main
         with:
           model: gemini:gemini-2.5-pro
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 ```
 
-Then add the secrets for the providers you use (repo → Settings → Secrets → Actions).
+```yaml
+      - uses: hasinoorit/kolpo@main
+        with:
+          model: openrouter:openai/gpt-oss-120b:free
+          openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
+```
+
+```yaml
+      - uses: hasinoorit/kolpo@main
+        with:
+          model: zai:glm-5.3
+          zai-api-key: ${{ secrets.ZAI_API_KEY }}
+```
 
 ## Test
 

@@ -30,5 +30,11 @@ jobs:
           ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || '' }}
       - uses: ./
         with:
-          model: openrouter:openrouter/free
+          model: ${{ vars.PRIMARY_MODEL }}
+          model-1: ${{ vars.SECONDARY_MODEL }}
+          model-2: ${{ vars.SECONDARY_MODEL_2 }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
+          zai-api-key: ${{ secrets.ZAI_API_KEY }}

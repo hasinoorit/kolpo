@@ -1,7 +1,7 @@
-export const PROVIDERS = ["anthropic", "openai", "gemini", "openrouter"]
+export const PROVIDERS = ["anthropic", "openai", "gemini", "openrouter", "zai"]
 
 /**
- * @typedef {"anthropic" | "openai" | "gemini" | "openrouter"} Provider
+ * @typedef {"anthropic" | "openai" | "gemini" | "openrouter" | "zai"} Provider
  */
 
 /**
@@ -44,6 +44,12 @@ export const PROVIDER_KEYS = {
     env: "OPENROUTER_API_KEY",
     label: "OpenRouter",
   },
+  zai: {
+    config: "zaiApiKey",
+    flag: "zai-api-key",
+    env: "ZAI_API_KEY",
+    label: "Z.AI",
+  },
 }
 
 /**
@@ -52,6 +58,7 @@ export const PROVIDER_KEYS = {
  * @property {string} [openai]
  * @property {string} [gemini]
  * @property {string} [openrouter]
+ * @property {string} [zai]
  */
 
 /**
@@ -66,12 +73,12 @@ export function parseModel(spec) {
   }
   const colon = value.indexOf(":")
   if (colon <= 0) {
-    throw new Error(`model spec "${value}" must be provider:id (anthropic, openai, gemini, or openrouter)`)
+    throw new Error(`model spec "${value}" must be provider:id (anthropic, openai, gemini, openrouter, or zai)`)
   }
   const provider = value.slice(0, colon).toLowerCase()
   const id = value.slice(colon + 1).trim()
   if (!PROVIDERS.includes(provider)) {
-    throw new Error(`unknown provider "${provider}". Use anthropic, openai, gemini, or openrouter`)
+    throw new Error(`unknown provider "${provider}". Use anthropic, openai, gemini, openrouter, or zai`)
   }
   if (!id) throw new Error(`model spec "${value}" is missing a model id`)
   return { provider: /** @type {Provider} */ (provider), id }
