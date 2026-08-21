@@ -1,0 +1,39 @@
+{
+  "name": "kolpo",
+  "version": "0.1.0",
+  "description": "AI code review CLI and GitHub Action for a local branch or pull request",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "kolpo": "bin/kolpo.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "review": "node src/cli.js",
+    "action": "node src/action.js",
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hasinoorit/kolpo.git"
+  },
+  "homepage": "https://github.com/hasinoorit/kolpo",
+  "bugs": {
+    "url": "https://github.com/hasinoorit/kolpo/issues"
+  },
+  "keywords": [
+    "code-review",
+    "cli",
+    "anthropic",
+    "openai",
+    "gemini",
+    "openrouter",
+    "github-action"
+  ]
+}

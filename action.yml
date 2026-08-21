@@ -1,0 +1,48 @@
+name: Kolpo
+description: Kolpo AI code review on pull requests.
+inputs:
+  model:
+    description: Primary reviewer as provider:id (anthropic, openai, gemini, or openrouter)
+    required: true
+  model-1:
+    description: First secondary reviewer as provider:id, or empty to disable
+    default: ""
+  model-2:
+    description: Second secondary reviewer as provider:id, or empty to disable. Runs in parallel with model-1.
+    default: ""
+  anthropic-api-key:
+    description: Anthropic API key (required if any slot uses anthropic:)
+    default: ""
+  openai-api-key:
+    description: OpenAI API key (required if any slot uses openai:)
+    default: ""
+  gemini-api-key:
+    description: Google AI Studio API key (required if any slot uses gemini:)
+    default: ""
+  openrouter-api-key:
+    description: OpenRouter API key (required if any slot uses openrouter:)
+    default: ""
+  extra-instructions:
+    description: Optional project-specific review guidance appended to the general system prompt
+    default: ""
+  github-token:
+    description: Token used to fetch the diff and post the review
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - run: node "${{ github.action_path }}/src/action.js"
+      shell: bash
+      env:
+        MODEL: ${{ inputs.model }}
+        MODEL_1: ${{ inputs.model-1 }}
+        MODEL_2: ${{ inputs.model-2 }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+        OPENROUTER_API_KEY: ${{ inputs.openrouter-api-key }}
+        EXTRA_INSTRUCTIONS: ${{ inputs.extra-instructions }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
