@@ -63,6 +63,12 @@ test("formatConfig labels an unset primary model as not set", () => {
   const text = formatConfig({}, "/tmp/c.json")
   assert.match(text, /^  model: \(not set\)$/m)
   assert.match(text, /^  model-1: \(default\)$/m)
+  assert.match(text, /^  timeout: \(default\)$/m)
   assert.match(text, /^  base: \(default\)$/m)
   assert.doesNotMatch(text, /^  model: \(default\)$/m)
+})
+
+test("formatConfig shows a saved timeout value", () => {
+  const text = formatConfig({ timeout: "180" }, "/tmp/c.json")
+  assert.match(text, /^  timeout: 180$/m)
 })

@@ -28,6 +28,9 @@ inputs:
   extra-instructions:
     description: Optional project-specific review guidance appended to the general system prompt
     default: ""
+  timeout:
+    description: Per-request HTTP timeout in seconds (default 120)
+    default: "120"
   github-token:
     description: Token used to fetch the diff and post the review
     default: ${{ github.token }}
@@ -49,4 +52,5 @@ runs:
         OPENROUTER_API_KEY: ${{ inputs.openrouter-api-key }}
         ZAI_API_KEY: ${{ inputs.zai-api-key }}
         EXTRA_INSTRUCTIONS: ${{ inputs.extra-instructions }}
+        TIMEOUT: ${{ inputs.timeout }}
         GITHUB_TOKEN: ${{ inputs.github-token }}

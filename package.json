@@ -1,6 +1,6 @@
 {
   "name": "kolpo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AI code review CLI and GitHub Action for a local branch or pull request",
   "license": "MIT",
   "type": "module",

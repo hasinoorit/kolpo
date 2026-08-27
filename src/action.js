@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { DEFAULT_MODEL_1, DEFAULT_MODEL_2 } from "./config.js"
+import { DEFAULT_MODEL_1, DEFAULT_MODEL_2, resolveTimeout } from "./config.js"
 import { gitDiffRange, gitFetchShas } from "./git.js"
 import { addIssueCommentReaction, getPull, GITHUB_ACTIONS_BOT } from "./github.js"
 import { parseModel, resolveProviderKeys } from "./models.js"
@@ -65,7 +65,8 @@ export async function runAction() {
   if (model1) parseModel(model1)
   if (model2) parseModel(model2)
   const keys = resolveProviderKeys([model, model1, model2], {}, process.env, {})
-  console.log(`Chosen models: model=${model} model-1=${model1 || "(none)"} model-2=${model2 || "(none)"}`)
+  const timeout = resolveTimeout(undefined, process.env, {})
+  console.log(`Chosen models: model=${model} model-1=${model1 || "(none)"} model-2=${model2 || "(none)"} timeout=${timeout}s`)
 
   const result = await runReview({
     diff,
@@ -77,6 +78,7 @@ export async function runAction() {
     secondaryModel: model1,
     secondaryModel2: model2,
     keys,
+    timeout,
   })
 
   const posted = withMarkers(result.body, result.inline)

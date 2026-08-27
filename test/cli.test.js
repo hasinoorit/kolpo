@@ -4,8 +4,9 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { parseArgs, resolveReviewOptions, runCli, reviewMarkdownName, writeReviewMarkdown, HELP } from "../src/cli.js"
-import { DEFAULT_MODEL_1, DEFAULT_MODEL_2 } from "../src/config.js"
+import { DEFAULT_MODEL_1, DEFAULT_MODEL_2, DEFAULT_TIMEOUT } from "../src/config.js"
 import { loadConfig } from "../src/store.js"
+import { execFileSync } from "node:child_process"
 
 const reviewDefaults = {
   command: "review",
@@ -37,6 +38,8 @@ test("parseArgs accepts positional base and flags", () => {
     "sk-gem",
     "--zai-api-key",
     "sk-zai",
+    "--timeout",
+    "180",
     "--extra-instructions",
     "watch rounding",
     "--save",
@@ -53,6 +56,7 @@ test("parseArgs accepts positional base and flags", () => {
   assert.equal(opts.openaiApiKey, "sk-oa")
   assert.equal(opts.geminiApiKey, "sk-gem")
   assert.equal(opts.zaiApiKey, "sk-zai")
+  assert.equal(opts.timeout, "180")
   assert.equal(opts.extraInstructions, "watch rounding")
   assert.equal(opts.extraSpecified, true)
   assert.equal(opts.save, true)
@@ -96,6 +100,7 @@ test("HELP documents positional base and --help", () => {
   assert.match(HELP, /--help/)
   assert.match(HELP, /kolpo config show/)
   assert.match(HELP, /zai-api-key/)
+  assert.match(HELP, /--timeout/)
   assert.match(HELP, /Providers:.*zai/)
 })
 
@@ -150,6 +155,13 @@ test("parseArgs config subcommands", () => {
     action: "set",
     key: "zaiApiKey",
     value: "sk-zai",
+    help: false,
+  })
+  assert.deepEqual(parseArgs(["config", "set", "timeout", "180"]), {
+    command: "config",
+    action: "set",
+    key: "timeout",
+    value: "180",
     help: false,
   })
   assert.throws(() => parseArgs(["config", "set", "api-key", "x"]), /Unknown config key/)
@@ -240,6 +252,79 @@ test("resolveReviewOptions prefers flag key over env over saved", () => {
     ).keys.openai,
     "sk-env"
   )
+})
+
+test("resolveReviewOptions resolves timeout flag over env over saved over default", () => {
+  assert.equal(
+    resolveReviewOptions({ ...reviewDefaults, model: "openai:gpt-5.4", openaiApiKey: "sk" }, {}, {}).timeout,
+    DEFAULT_TIMEOUT
+  )
+  assert.equal(
+    resolveReviewOptions(
+      { ...reviewDefaults, model: "openai:gpt-5.4", openaiApiKey: "sk" },
+      { timeout: "90" },
+      {}
+    ).timeout,
+    90
+  )
+  assert.equal(
+    resolveReviewOptions(
+      { ...reviewDefaults, model: "openai:gpt-5.4", openaiApiKey: "sk" },
+      { timeout: "90" },
+      { TIMEOUT: "60" }
+    ).timeout,
+    60
+  )
+  assert.equal(
+    resolveReviewOptions(
+      { ...reviewDefaults, model: "openai:gpt-5.4", openaiApiKey: "sk", timeout: "180" },
+      { timeout: "90" },
+      { TIMEOUT: "60" }
+    ).timeout,
+    180
+  )
+  assert.throws(
+    () =>
+      resolveReviewOptions(
+        { ...reviewDefaults, model: "openai:gpt-5.4", openaiApiKey: "sk", timeout: "0" },
+        {},
+        {}
+      ),
+    /positive integer/
+  )
+  assert.throws(
+    () =>
+      resolveReviewOptions(
+        { ...reviewDefaults, model: "openai:gpt-5.4", openaiApiKey: "sk", timeout: "1.5" },
+        {},
+        {}
+      ),
+    /positive integer/
+  )
+})
+
+test("runCli --timeout --save persists timeout", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "kolpo-"))
+  const file = join(dir, "config.json")
+  writeFileSync(file, JSON.stringify({ model: "openai:gpt-5.4", openaiApiKey: "sk" }, null, 2) + "\n")
+  execFileSync("git", ["-c", "init.templateDir=", "init"], { cwd: dir })
+  execFileSync("git", ["config", "user.email", "t@t"], { cwd: dir })
+  execFileSync("git", ["config", "user.name", "t"], { cwd: dir })
+  writeFileSync(join(dir, "f.txt"), "a\n")
+  execFileSync("git", ["add", "f.txt"], { cwd: dir })
+  execFileSync("git", ["commit", "-m", "init"], { cwd: dir })
+  const prev = process.env.KOLPO_CONFIG
+  const cwd = process.cwd()
+  process.env.KOLPO_CONFIG = file
+  process.chdir(dir)
+  try {
+    assert.equal(await runCli(["--timeout", "180", "--save"]), 0)
+    assert.equal(loadConfig(file).timeout, "180")
+  } finally {
+    process.chdir(cwd)
+    if (prev === undefined) delete process.env.KOLPO_CONFIG
+    else process.env.KOLPO_CONFIG = prev
+  }
 })
 
 test("runCli --save does not persist when primary model resolution fails", async () => {

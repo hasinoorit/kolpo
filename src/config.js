@@ -8,6 +8,7 @@ export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta
 
 export const DEFAULT_MODEL_1 = ""
 export const DEFAULT_MODEL_2 = ""
+export const DEFAULT_TIMEOUT = 120
 
 export const SKIP_FILES =
   /\.(png|jpe?g|gif|webp|ico|svg|woff2?|ttf|eot|map|min\.js|min\.css)$|(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|Cargo\.lock|go\.sum|composer\.lock|Gemfile\.lock)$/
@@ -18,6 +19,37 @@ export const TREE_MAX_LINES = 10_000
 
 export const MAX_MODEL_ATTEMPTS = 2
 export const MAX_OUTPUT_TOKENS = 16384
+
+/**
+ * @param {string | undefined | null} raw
+ * @returns {number}
+ */
+export function parseTimeout(raw) {
+  const value = String(raw ?? "").trim()
+  if (!value) throw new Error("timeout must be a positive integer (seconds)")
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`timeout must be a positive integer (seconds), got "${value}"`)
+  }
+  const n = Number(value)
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`timeout must be a positive integer (seconds), got "${value}"`)
+  }
+  return n
+}
+
+/**
+ * @param {string | undefined} flag
+ * @param {NodeJS.ProcessEnv} [env]
+ * @param {{ timeout?: string }} [saved]
+ * @returns {number}
+ */
+export function resolveTimeout(flag, env = process.env, saved = {}) {
+  if (flag !== undefined) return parseTimeout(flag)
+  const fromEnv = env.TIMEOUT
+  if (fromEnv !== undefined && String(fromEnv).trim() !== "") return parseTimeout(fromEnv)
+  if (saved.timeout !== undefined && String(saved.timeout).trim() !== "") return parseTimeout(saved.timeout)
+  return DEFAULT_TIMEOUT
+}
 
 /**
  * @param {string} id

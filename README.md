@@ -29,6 +29,7 @@ kolpo config set zai-api-key ...
 kolpo config set model anthropic:claude-sonnet-4-6
 kolpo config set model-1 openai:gpt-5.4
 kolpo config set model-2 gemini:gemini-2.5-pro
+kolpo config set timeout 180
 kolpo config
 kolpo
 ```
@@ -39,6 +40,7 @@ Or without a global install: `npx kolpo`. Persist flags from a review invocation
 kolpo --anthropic-api-key sk-ant-... --model anthropic:claude-sonnet-4-6 --save
 kolpo --gemini-api-key AIza... --model gemini:gemini-2.5-pro --save
 kolpo --zai-api-key ... --model zai:glm-5.3 --save
+kolpo --timeout 300 --save
 ```
 
 Config lives at `~/.config/kolpo/config.json` (override with `KOLPO_CONFIG`).
@@ -53,6 +55,8 @@ kolpo --base origin/dev
 kolpo --model gemini:gemini-2.5-pro
 kolpo --model anthropic:claude-sonnet-4-6 --model-1 openai:gpt-5.4 --model-2 gemini:gemini-2.5-pro
 kolpo --model openai:gpt-5.4 --model-1 "" --model-2 ""
+kolpo --timeout 60
+TIMEOUT=300 kolpo
 kolpo config unset model-2
 kolpo config path
 ```
@@ -69,6 +73,7 @@ Flags (override saved config for this run):
 - `--openrouter-api-key <key>` — OpenRouter key (overrides `OPENROUTER_API_KEY` and saved config)
 - `--zai-api-key <key>` — Z.AI key (overrides `ZAI_API_KEY` and saved config)
 - `--extra-instructions <text>` — project-specific guidance appended to the system prompt
+- `--timeout <seconds>` — per-request HTTP timeout in seconds (default: 120; overrides `TIMEOUT` and saved config)
 - `--save` — write the flags you passed to the config file
 
 A provider's key is required only when a slot uses that provider. Flag beats env beats saved config.
@@ -157,10 +162,11 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
           zai-api-key: ${{ secrets.ZAI_API_KEY }}
+          timeout: ${{ vars.TIMEOUT }}
 ```
 
 Set `PRIMARY_MODEL` to a `provider:id`, for example `anthropic:claude-sonnet-4-6`.
-Optional: `SECONDARY_MODEL`, `SECONDARY_MODEL_2`.
+Optional: `SECONDARY_MODEL`, `SECONDARY_MODEL_2`, `TIMEOUT` (seconds; Action default is 120).
 
 Static models, secrets for keys:
 
@@ -173,6 +179,7 @@ Static models, secrets for keys:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          timeout: 180
           extra-instructions: |
             This is a payments service; scrutinize idempotency and rounding.
 ```
@@ -190,6 +197,7 @@ Mix static and vars if you want a fixed primary and swappable secondaries:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
           zai-api-key: ${{ secrets.ZAI_API_KEY }}
+          timeout: ${{ vars.TIMEOUT }}
 ```
 
 Each provider as the primary reviewer:

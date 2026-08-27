@@ -269,6 +269,36 @@ test("runReview retries the same model on 503 then throws", async () => {
   assert.equal(urls.length, 2)
 })
 
+test("runReview times out a hung fetch instead of waiting forever", async () => {
+  await withFetch(async (_url, init) => {
+    return new Promise((_resolve, reject) => {
+      const signal = init?.signal
+      if (!signal) return
+      if (signal.aborted) {
+        reject(signal.reason ?? new DOMException("The operation was aborted", "AbortError"))
+        return
+      }
+      signal.addEventListener("abort", () => {
+        reject(signal.reason ?? new DOMException("The operation was aborted", "AbortError"))
+      })
+    })
+  }, async () => {
+    await assert.rejects(
+      () =>
+        runReview({
+          diff: DIFF,
+          workspace: process.cwd(),
+          primaryModel: "openai:gpt-5.4",
+          secondaryModel: "",
+          secondaryModel2: "",
+          keys: { openai: "sk" },
+          timeout: 1,
+        }),
+      /timed out after 1s/
+    )
+  })
+})
+
 test("runReview drops a failed secondary and still completes with the primary", async () => {
   const models = []
   await withFetch(async (_url, init) => {

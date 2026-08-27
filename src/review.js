@@ -3,6 +3,7 @@ import { join } from "node:path"
 import {
   ANTHROPIC_URL,
   BOT_NAME,
+  DEFAULT_TIMEOUT,
   FILE_CAP,
   MAX_MODEL_ATTEMPTS,
   MAX_OUTPUT_TOKENS,
@@ -52,6 +53,7 @@ const SOURCES = new Set(["primary", "secondary", "secondary2", "both"])
  * @property {string} secondaryModel
  * @property {string} secondaryModel2
  * @property {import("./models.js").ProviderKeys} keys
+ * @property {number} [timeout]
  */
 
 /**
@@ -265,9 +267,11 @@ function shouldRetryStatus(status) {
  * @param {import("./models.js").ProviderKeys} keys
  * @param {string} userContent
  * @param {string} [extraInstructions]
+ * @param {number} timeout
+ * @param {string} logLabel
  * @returns {Promise<Review>}
  */
-async function callModel(spec, keys, userContent, extraInstructions) {
+async function callModel(spec, keys, userContent, extraInstructions, timeout, logLabel) {
   const { provider, id } = parseModel(spec)
   const apiKey = keys[provider]
   if (!apiKey) throw new Error(`${provider} API key missing`)
@@ -288,11 +292,28 @@ async function callModel(spec, keys, userContent, extraInstructions) {
   let geminiContents = initialGemini
   let lastError
   for (let attempt = 0; attempt < MAX_MODEL_ATTEMPTS; attempt++) {
+    console.log(
+      `${logLabel} with ${spec} attempt ${attempt + 1}/${MAX_MODEL_ATTEMPTS} (prompt ~${userContent.length} chars)`
+    )
     let res
     try {
-      res = await fetchProvider(provider, id, apiKey, systemPrompt, chatMessages, anthropicMessages, geminiContents)
+      res = await fetchProvider(
+        provider,
+        id,
+        apiKey,
+        systemPrompt,
+        chatMessages,
+        anthropicMessages,
+        geminiContents,
+        timeout
+      )
     } catch (e) {
-      lastError = e
+      const name = e instanceof Error ? e.name : ""
+      if (name === "TimeoutError" || name === "AbortError") {
+        lastError = new Error(`timed out after ${timeout}s`)
+      } else {
+        lastError = e
+      }
       continue
     }
     if (!res.ok) {
@@ -413,9 +434,11 @@ function providerLabel(provider) {
  * @param {{ role: string, content: string }[]} chatMessages
  * @param {{ role: string, content: string }[]} anthropicMessages
  * @param {{ role: string, parts: { text: string }[] }[]} geminiContents
+ * @param {number} timeout
  * @returns {Promise<Response>}
  */
-function fetchProvider(provider, id, apiKey, systemPrompt, chatMessages, anthropicMessages, geminiContents) {
+function fetchProvider(provider, id, apiKey, systemPrompt, chatMessages, anthropicMessages, geminiContents, timeout) {
+  const signal = AbortSignal.timeout(timeout * 1000)
   if (provider === "anthropic") {
     return fetch(ANTHROPIC_URL, {
       method: "POST",
@@ -430,6 +453,7 @@ function fetchProvider(provider, id, apiKey, systemPrompt, chatMessages, anthrop
         system: systemPrompt,
         messages: anthropicMessages,
       }),
+      signal,
     })
   }
   if (provider === "gemini") {
@@ -444,6 +468,7 @@ function fetchProvider(provider, id, apiKey, systemPrompt, chatMessages, anthrop
         contents: geminiContents,
         generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
       }),
+      signal,
     })
   }
   const url = provider === "openai" ? OPENAI_URL : provider === "zai" ? ZAI_URL : OPENROUTER_URL
@@ -452,6 +477,7 @@ function fetchProvider(provider, id, apiKey, systemPrompt, chatMessages, anthrop
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: id, messages: chatMessages, ...limit }),
+    signal,
   })
 }
 
@@ -638,6 +664,7 @@ export function formatCliOutput(result) {
 export async function runReview(input) {
   const userContent = buildUserContent(input)
   const extra = input.extraInstructions
+  const timeout = input.timeout ?? DEFAULT_TIMEOUT
 
   /**
    * @param {string} preferred
@@ -648,9 +675,8 @@ export async function runReview(input) {
   async function runSlot(preferred, source, content) {
     if (!preferred.trim()) return null
     const label = source === "primary" ? "Reviewing" : "Secondary review"
-    console.log(`${label} with ${preferred} (prompt ~${content.length} chars)`)
     try {
-      const review = await callModel(preferred, input.keys, content, extra)
+      const review = await callModel(preferred, input.keys, content, extra, timeout, label)
       return source === "primary" ? { model: preferred, review } : { model: preferred, source, review }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)

@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto"
 import { writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { DEFAULT_MODEL_1, DEFAULT_MODEL_2 } from "./config.js"
+import { DEFAULT_MODEL_1, DEFAULT_MODEL_2, resolveTimeout } from "./config.js"
 import { currentBranch, defaultBase, gitDiff } from "./git.js"
 import { parseModel, resolveProviderKeys } from "./models.js"
 import { maybePostToGithub } from "./post.js"
@@ -36,6 +36,7 @@ Options:
   --openrouter-api-key <key>   OpenRouter API key (overrides OPENROUTER_API_KEY and saved config)
   --zai-api-key <key>          Z.AI API key (overrides ZAI_API_KEY and saved config)
   --extra-instructions <text>  Project-specific guidance appended to the system prompt
+  --timeout <seconds>          Per-request HTTP timeout in seconds (default: 120)
   --save                       Persist passed flags to the config file
   -h, --help                   Show this help
 
@@ -43,7 +44,7 @@ Providers: anthropic, openai, gemini, openrouter, zai. Specs are provider:id.
 A provider's key is required only when a slot uses that provider.
 
 Config keys: anthropic-api-key, openai-api-key, gemini-api-key, openrouter-api-key, zai-api-key,
-             model, model-1, model-2, extra-instructions, base
+             model, model-1, model-2, extra-instructions, timeout, base
 Config file: ~/.config/kolpo/config.json (override with KOLPO_CONFIG)
 `
 
@@ -63,6 +64,7 @@ Config file: ~/.config/kolpo/config.json (override with KOLPO_CONFIG)
  * @property {string} [zaiApiKey]
  * @property {string} [extraInstructions]
  * @property {boolean} extraSpecified
+ * @property {string} [timeout]
  * @property {boolean} save
  * @property {boolean} help
  */
@@ -88,6 +90,7 @@ Config file: ~/.config/kolpo/config.json (override with KOLPO_CONFIG)
  * @property {string} model2
  * @property {import("./models.js").ProviderKeys} keys
  * @property {string} [extraInstructions]
+ * @property {number} timeout
  */
 
 /**
@@ -248,6 +251,12 @@ export function parseArgs(argv) {
       i = next
       continue
     }
+    if (arg === "--timeout" || arg.startsWith("--timeout=")) {
+      const [value, next] = takeValue(argv, i, "--timeout")
+      opts.timeout = value
+      i = next
+      continue
+    }
     if (arg.startsWith("-")) throw new Error(`Unknown flag: ${arg}`)
     positional.push(arg)
   }
@@ -294,6 +303,7 @@ export function resolveReviewOptions(opts, saved, env = process.env) {
       saved
     ),
     extraInstructions: opts.extraSpecified ? opts.extraInstructions : saved.extraInstructions,
+    timeout: resolveTimeout(opts.timeout, env, saved),
   }
 }
 
@@ -340,10 +350,11 @@ function persistPassedFlags(opts, file) {
   if (opts.model1Specified) partial.model1 = opts.model1 ?? ""
   if (opts.model2Specified) partial.model2 = opts.model2 ?? ""
   if (opts.extraSpecified) partial.extraInstructions = opts.extraInstructions
+  if (opts.timeout !== undefined) partial.timeout = opts.timeout
   if (opts.base !== undefined) partial.base = opts.base
   if (!Object.keys(partial).length) {
     console.error(
-      "Nothing to save. Pass --model, --model-1, --model-2, a provider API key, --extra-instructions, or --base with --save."
+      "Nothing to save. Pass --model, --model-1, --model-2, a provider API key, --extra-instructions, --timeout, or --base with --save."
     )
     return
   }
@@ -432,7 +443,7 @@ export async function runCli(argv = process.argv.slice(2)) {
   }
 
   console.log(
-    `Chosen models: model=${resolved.model} model-1=${resolved.model1 || "(none)"} model-2=${resolved.model2 || "(none)"}`
+    `Chosen models: model=${resolved.model} model-1=${resolved.model1 || "(none)"} model-2=${resolved.model2 || "(none)"} timeout=${resolved.timeout}s`
   )
 
   const result = await runReview({
@@ -444,6 +455,7 @@ export async function runCli(argv = process.argv.slice(2)) {
     secondaryModel: resolved.model1,
     secondaryModel2: resolved.model2,
     keys: resolved.keys,
+    timeout: resolved.timeout,
   })
 
   const modelsNote = [result.primaryModel, result.secondaryModel, result.secondaryModel2].filter(Boolean).join(", ")
